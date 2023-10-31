@@ -6,6 +6,16 @@ SELECT DISTINCT(codC) FROM trabajos WHERE codP='P02' AND codC IN(SELECT DISTINCT
     SELECT nombre, fecha
     FROM conductores JOIN reformas.trabajos ON conductores.codC = trabajos.codC
     AND fecha='2019-09-12 00:00:00';
+## 2 Trabajadores que hayan trabajado en todos los proyectos
+    SELECT c.nombre
+    FROM conductores c
+    WHERE NOT EXISTS(
+        SELECT p.CodP
+        FROM proyectos p
+        WHERE p.codP NOT IN (SELECT t.CodP
+                             FROM trabajos t
+                             WHERE t.codC = c.codC));
+
 
 # Ejercicios Paper
 ##01
@@ -145,12 +155,22 @@ SELECT DISTINCT(codC) FROM trabajos WHERE codP='P02' AND codC IN(SELECT DISTINCT
     GROUP BY p.codP
     HAVING splits > 1
     ORDER BY splits DESC;
+
+    SELECT DISTINCT t.codP, COUNT(t.codP) as splits, p.cliente, p.descripcion
+         FROM trabajos t
+         JOIN reformas.proyectos p on p.codP = t.codP
+         GROUP BY t.codP
+    HAVING splits = (SELECT MAX(splits)
+                    FROM (SELECT DISTINCT t.codP, COUNT(t.codP) as splits
+                          FROM trabajos t
+                          GROUP BY t.codP) as pimiento);
+
 ##23
-    SELECT c.codC, COUNT(t.codP) as Projects
+    SELECT distinct c.localidad
     FROM conductores c
         JOIN reformas.trabajos t on c.codC = t.codC
     GROUP BY t.codC
-    HAVING Projects > 1;
+    HAVING COUNT(t.codP) > 2;
 ##24
     CREATE TABLE reformas.maquinasBig AS SELECT * FROM reformas.maquinas
     WHERE precioHora = (SELECT max(precioHora) FROM reformas.maquinas);
