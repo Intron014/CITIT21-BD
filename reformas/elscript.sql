@@ -164,14 +164,13 @@ SELECT DISTINCT(codC) FROM trabajos WHERE codP='P02' AND codC IN(SELECT DISTINCT
                     FROM (SELECT DISTINCT t.codP, COUNT(t.codP) as splits
                           FROM trabajos t
                           GROUP BY t.codP) as pimiento);
-
 ##23
     SELECT distinct c.localidad
     FROM conductores c
         JOIN reformas.trabajos t on c.codC = t.codC
     GROUP BY t.codC
     HAVING COUNT(t.codP) > 2;
-##24
+##24 basura
     CREATE TABLE reformas.maquinasBig AS SELECT * FROM reformas.maquinas
     WHERE precioHora = (SELECT max(precioHora) FROM reformas.maquinas);
     UPDATE reformas.maquinas
@@ -180,3 +179,19 @@ SELECT DISTINCT(codC) FROM trabajos WHERE codP='P02' AND codC IN(SELECT DISTINCT
                        FROM (SELECT codM, precioHora FROM reformas.maquinasBig) as r
                        WHERE precioHora = (SELECT max(precioHora) FROM reformas.maquinasBig));
     DROP TABLE maquinasBig;
+
+    UPDATE maquinas
+    SET precioHora = precioHora*1.1
+    WHERE precioHora NOT IN (SELECT (MAX(precioHora)));
+##25
+    UPDATE conductores
+    SET categoria = categoria*1.15
+    WHERE codC NOT IN (SELECT codC
+                       FROM trabajos
+                       WHERE codM IN (SELECT codM FROM maquinas WHERE maquinas.nombre = 'Volquete'))
+    AND codC IN (SELECT codC FROM trabajos GROUP BY codC HAVING COUNT(DISTINCT codP) > 1);
+##26
+    DELETE FROM reformas.proyectos
+    WHERE descripcion = 'Solado';
+##27
+    ALTER DATABASE
