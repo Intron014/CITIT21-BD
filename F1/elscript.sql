@@ -62,3 +62,4 @@ SELECT @champion_score;
 
 DROP PROCEDURE getChampionScore;
 ##
+
