@@ -128,11 +128,6 @@ CALL updateYearsActive();
 
 DROP PROCEDURE updateYearsActive;
 ##8
-# A partir de este momento la FIA no va a permitir que haya equipos con más de 2
-# pilotos, por ello se debe desarrollar un trigger que impida que se puedan incorporar en
-# un mismo equipo mÁs de 2 pilotos a la base de datos. Para ello, se debe impedir toda
-# operación que haga que un 3 o más pilotos pasen a formar parte del mismo equipo de
-# constructores, ya sea mediante inserción o actualización de los datos
 DELIMITER $$
 CREATE TRIGGER checkDriversPerConstructorPerRace BEFORE INSERT ON results
 FOR EACH ROW
@@ -156,3 +151,99 @@ END $$
 INSERT INTO results VALUES (237821501,42,2,4,99,1,0,50,1,1,8, 3, 2);
 
 DROP TRIGGER checkDriversPerConstructorPerRace;
+##9
+CREATE TABLE crashes (
+    crashID INT UNIQUE NOT NULL AUTO_INCREMENT,
+    driverID INT NOT NULL,
+    description VARCHAR(30) DEFAULT NULL,
+    PRIMARY KEY (crashID),
+    CONSTRAINT FOREIGN KEY (driverID) REFERENCES drivers(driverID));
+
+DELIMITER $$
+CREATE TRIGGER newCrash AFTER INSERT ON results
+    FOR EACH ROW
+    BEGIN
+        IF NEW.statusId = 3 OR NEW.statusId = 4 THEN
+            INSERT INTO crashes (driverId) VALUES (NEW.driverId);
+        END IF;
+    END $$
+DELIMITER ;
+
+DROP TRIGGER newCrash;
+##11
+DELIMITER $$
+CREATE PROCEDURE sameCountryWins(IN search_year INT)
+BEGIN
+    SELECT drivers.forename, drivers.surname, circuits.name
+        FROM drivers
+        JOIN formula1.results on drivers.driverId = results.driverId
+        JOIN formula1.races on races.raceId = results.raceId
+        JOIN formula1.circuits on races.circuitId = circuits.circuitId
+        JOIN formula1.constructors on results.constructorId = constructors.constructorId
+        WHERE races.year = search_year AND results.positionOrder = 1 AND drivers.nationality = constructors.nationality;
+END $$
+DELIMITER ;
+
+DROP PROCEDURE sameCountryWins;
+##12
+DELIMITER $$
+CREATE PROCEDURE podiumInYear(IN search_year INT)
+BEGIN
+    select DISTINCT drivers.driverID, drivers.forename, drivers.surname
+        FROM drivers
+        JOIN formula1.results on drivers.driverId = results.driverId
+        JOIN formula1.races on results.raceId = races.raceId
+        WHERE positionOrder <=3 AND races.year = search_year
+        GROUP BY drivers.driverId, year
+        HAVING COUNT(DISTINCT positionOrder) = 3
+        ORDER BY drivers.driverId;
+END $$
+DELIMITER ;
+
+CALL podiumInYear(2008);
+DROP PROCEDURE podiumInYear;
+##13
+DELIMITER $$
+CREATE FUNCTION diffPoints(driverId1 INT, driverId2 INT)
+RETURNS DECIMAL (10,2)
+DETERMINISTIC
+BEGIN
+    DECLARE pd1 INT;
+    DECLARE pd2 INT;
+    SELECT SUM(points) INTO pd1
+    FROM results
+    WHERE driverId1 = driverId;
+    SELECT SUM(points) INTO pd2
+    FROM results
+    WHERE driverId2 = driverId;
+
+    RETURN (pd1-pd2);
+end $$
+DELIMITER ;
+
+SELECT diffPoints(1, 2);
+DROP FUNCTION diffPoints;
+##14
+CREATE TABLE sponsors (
+    sponsorID INT UNIQUE NOT NULL AUTO_INCREMENT,
+    name VARCHAR(30) NOT NULL,
+    type VARCHAR(30),
+    year INT NOT NULL,
+    raceID INT NOT NULL,
+    revenue DECIMAL(10,2) NOT NULL,
+    PRIMARY KEY (sponsorID),
+    CONSTRAINT FOREIGN KEY (raceID) REFERENCES races(raceID));
+
+DELIMITER $$
+CREATE TRIGGER sponsorTypyfier BEFORE INSERT on sponsors
+FOR EACH ROW
+BEGIN
+    IF NEW.revenue >= 5000000 THEN
+        SET NEW.type = 'oficial';
+    ELSE
+        SET NEW.type = 'cooficial';
+    END IF;
+END $$
+DELIMITER ;
+DROP TRIGGER sponsorTypyfier;
+INSERT INTO sponsors (name, year, raceID, revenue) VALUES ('UPM', 2004, 1, 54268119);
