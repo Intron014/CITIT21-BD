@@ -263,18 +263,18 @@ CALL getDriversAndConstructors(2017);
 DROP PROCEDURE getDriversAndConstructors;
 ##16
 DELIMITER $$
-CREATE PROCEDURE getNumberOfVictories(IN type VARCHAR(50), OUT numVictories INT)
+CREATE PROCEDURE getNumberOfVictories(IN type VARCHAR(50))
 BEGIN
     IF type = 'nationality'
     THEN
-        SELECT drivers.nationality, COUNT(drivers.forename) INTO numVictories
+        SELECT drivers.nationality, COUNT(drivers.forename)
         FROM drivers
         JOIN formula1.results on drivers.driverId = results.driverId
         WHERE results.positionOrder = 1
         GROUP BY nationality
         ORDER BY COUNT(drivers.forename) DESC;
     ELSE
-        SELECT constructors.name, COUNT(constructors.name) INTO numVictories
+        SELECT constructors.name, COUNT(constructors.name)
         FROM constructors
         JOIN formula1.results on constructors.constructorId = results.constructorId
         WHERE results.positionOrder = 1
