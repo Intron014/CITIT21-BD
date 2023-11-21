@@ -247,3 +247,39 @@ END $$
 DELIMITER ;
 DROP TRIGGER sponsorTypyfier;
 INSERT INTO sponsors (name, year, raceID, revenue) VALUES ('UPM', 2004, 1, 54268119);
+##15
+DELIMITER $$
+CREATE PROCEDURE getDriversAndConstructors(IN search_year INT)
+BEGIN
+    SELECT DISTINCT drivers.forename, drivers.surname, constructors.name
+    FROM drivers
+    JOIN formula1.results on drivers.driverId = results.driverId
+    JOIN formula1.constructors on results.constructorId = constructors.constructorId
+    JOIN formula1.races on results.raceId = races.raceId
+    WHERE races.year = search_year;
+END $$
+DELIMITER ;
+CALL getDriversAndConstructors(2017);
+DROP PROCEDURE getDriversAndConstructors;
+##16
+DELIMITER $$
+CREATE PROCEDURE getNumberOfVictories(IN type VARCHAR(50), OUT numVictories INT)
+BEGIN
+    IF type = 'nationality'
+    THEN
+        SELECT drivers.nationality, COUNT(drivers.forename) INTO numVictories
+        FROM drivers
+        JOIN formula1.results on drivers.driverId = results.driverId
+        WHERE results.positionOrder = 1
+        GROUP BY nationality
+        ORDER BY COUNT(drivers.forename) DESC;
+    ELSE
+        SELECT constructors.name, COUNT(constructors.name) INTO numVictories
+        FROM constructors
+        JOIN formula1.results on constructors.constructorId = results.constructorId
+        WHERE results.positionOrder = 1
+        GROUP BY constructors.name
+        ORDER BY COUNT(constructors.name) DESC;
+    END IF;
+END $$
+DELIMITER ;
